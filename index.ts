@@ -49,12 +49,12 @@ async function main() {
       {
         chain: base,
         transport: http(),
-        version: getMEEVersion(MEEVersion.V2_2_1),
+        version: getMEEVersion(MEEVersion.V2_1_0),
       },
       {
         chain: optimism,
         transport: http(),
-        version: getMEEVersion(MEEVersion.V2_2_1),
+        version: getMEEVersion(MEEVersion.V2_1_0),
       },
     ],
   });
@@ -213,6 +213,7 @@ async function main() {
       mode: "smart-account",
       ownerAddress: signer.address,
       sessionDetails,
+      meeVersion: MEEVersion.V2_1_0.toString(),
       composeFlows: [
         {
           type: "/instructions/intent-simple",
@@ -244,13 +245,13 @@ async function main() {
       {
         chain: base,
         transport: http(),
-        version: getMEEVersion(MEEVersion.V2_2_1),
+        version: getMEEVersion(MEEVersion.V2_1_0),
         accountAddress: mcNexus.addressOn(base.id, true),
       },
       {
         chain: optimism,
         transport: http(),
-        version: getMEEVersion(MEEVersion.V2_2_1),
+        version: getMEEVersion(MEEVersion.V2_1_0),
         accountAddress: mcNexus.addressOn(optimism.id, true),
       },
     ],
