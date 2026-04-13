@@ -21,15 +21,16 @@ import {
   type GetQuotePayload,
   type Trigger,
   calldataArgument,
+  mcUSDT
 } from "@biconomy/abstractjs";
 
 async function main() {
   const PRIVATE_KEY = "PRIVATE_KEY" as Hex;
-  const API_KEY = "MEE_API_KEY";
-  const BASE_ACROSS_SPOKE_POOL_ADDRESS =
-    "0x09aea4b2242abC8bb4BB78D537A67a245A7bEC64";
+  const API_KEY = "API_KEY";
+  const ODOS_ROUTER_ADDRESS =
+    "0x0D05a7D3448512B78fa8A9e46c4872C88C4a0D05";
   const USDC_BASE = mcUSDC.addressOn(base.id);
-  const USDC_OP = mcUSDC.addressOn(optimism.id);
+  const USDT_BASE = mcUSDT.addressOn(base.id);
   const USDC_DECIMALS = 6;
 
   // 1. EOA signer – owner of the smart account. Signs the session setup once.
@@ -38,8 +39,8 @@ async function main() {
   // The owner never needs to sign again after the session is enabled.
   let redeemerAccount: LocalAccount = privateKeyToAccount(generatePrivateKey());
 
-  // Amount to bridge: 1 USDC (6 decimals)
-  const BRIDGE_AMOUNT = parseUnits("1", 6);
+  // Amount to bridge: 0.2 USDC (6 decimals)
+  const SWAP_AMOUNT = parseUnits("0.2", 6)
 
   // 2. Multichain Nexus account – same deterministic address on Base and Optimism.
   //    Both chains are required: Base is the deposit chain, Optimism is the receive chain.
@@ -70,7 +71,7 @@ async function main() {
   const trigger: Trigger = {
     tokenAddress: USDC_BASE,
     chainId: base.id,
-    amount: BRIDGE_AMOUNT,
+    amount: SWAP_AMOUNT,
   };
 
   // Session actions define exactly what the redeemer key is allowed to do.
@@ -85,7 +86,7 @@ async function main() {
         amountLimitPerAction: parseUnits("5", USDC_DECIMALS),
       },
     }),
-    // Action 2 – Approve: lets the redeemer approve USDC to the Across SpokePool.
+    // Action 2 – Approve: lets the redeemer approve USDC to the Odos Router.
     //   • amountLimitPerAction: single approval capped at 10 USDC
     //   • maxAmountLimit: lifetime approval ceiling of 100 USDC
     //   • usageLimit: approval call allowed at most 10 times
@@ -94,43 +95,43 @@ async function main() {
       data: {
         chainIds: [base.id],
         contractAddress: USDC_BASE,
-        recipientAddress: BASE_ACROSS_SPOKE_POOL_ADDRESS,
+        recipientAddress: ODOS_ROUTER_ADDRESS,
         amountLimitPerAction: parseUnits("10", USDC_DECIMALS),
         maxAmountLimit: parseUnits("100", USDC_DECIMALS),
         usageLimit: 10n,
       },
     }),
-    // Action 3 – Custom: lets the redeemer call depositV3 (0x7b939232) on the Across SpokePool.
+    // Action 3 – Custom: lets the redeemer call the Odos swap function (0x30f80b4c) on the Odos Router.
     //   Policies applied:
     //   • universal – calldata rules that lock down the call arguments:
-    //       - arg[3] (inputToken)  must equal USDC on Base   → prevents draining other tokens
-    //       - arg[4] (outputToken) must equal USDC on Optimism → enforces the correct destination token
-    //       - arg[5] (inputAmount) must be ≤ 10 USDC          → caps the per-bridge amount
-    //   • usageLimit – the redeemer can call depositV3 at most 10 times with this session
+    //       - arg[1] (inputToken)  must equal USDC on Base  → prevents draining other tokens
+    //       - arg[2] (inputAmount) must be ≤ 10 USDC        → caps the per-swap amount
+    //       - arg[4] (outputToken) must equal USDT on Base  → enforces the correct output token
+    //   • usageLimit – the redeemer can call the swap function at most 10 times with this session
     mcNexus.buildSessionAction({
       type: "custom",
       data: {
         chainIds: [base.id],
-        contractAddress: "0x09aea4b2242abC8bb4BB78D537A67a245A7bEC64",
-        functionSignature: "0x7b939232",
+        contractAddress: ODOS_ROUTER_ADDRESS,
+        functionSignature: "0x30f80b4c",
         policies: [
           {
             type: "universal",
             rules: [
               {
-                calldataOffset: calldataArgument(3),
+                calldataOffset: calldataArgument(1),
                 condition: "equal",
                 comparisonValue: USDC_BASE as Hex,
               },
               {
-                calldataOffset: calldataArgument(4),
-                condition: "equal",
-                comparisonValue: USDC_OP as Hex,
-              },
-              {
-                calldataOffset: calldataArgument(5),
+                calldataOffset: calldataArgument(2),
                 condition: "lessThanOrEqual",
                 comparisonValue: parseUnits("10", USDC_DECIMALS),
+              },
+              {
+                calldataOffset: calldataArgument(4),
+                condition: "equal",
+                comparisonValue: USDT_BASE as Hex,
               },
             ],
           },
@@ -140,7 +141,7 @@ async function main() {
           },
         ],
       },
-    }),
+    })
   ];
 
   // Check current USDC balance of the smart account on Base.
@@ -154,7 +155,7 @@ async function main() {
     args: [mcNexus.addressOn(base.id, true)],
   });
 
-  const isFundingRequired = scaBalance < parseUnits("1", 6);
+  const isFundingRequired = scaBalance < SWAP_AMOUNT;
 
   // Phase 1 – PREPARE mode: builds and enables the smart session on-chain.
   // The owner EOA signs this once. After this tx is mined the redeemer key
@@ -199,10 +200,10 @@ async function main() {
     sessionDetails = prepareAndEnableSessionQuote.sessionDetails;
   }
 
-  // Phase 2 – Fetch a bridge intent quote from the Supertransaction API.
+  // Phase 2 – Fetch a swap intent quote from the Supertransaction API.
   // Passes sessionDetails so the node builds userOps signed by the redeemer key.
-  // intent-simple routes USDC Base → Optimism via Across (allowBridgeProviders).
-  // Any intent providers can be used such as LiFi and etc... Policies needs to be configured accordingly
+  // intent-simple swaps USDC → USDT on Base via Odos (allowSwapProviders).
+  // Odos is very well suited for smart session granualr permissions
   const quoteResult = await fetch("https://api.biconomy.io/v1/quote", {
     method: "POST",
     headers: {
@@ -220,12 +221,12 @@ async function main() {
           type: "/instructions/intent-simple",
           data: {
             srcChainId: base.id,
-            dstChainId: optimism.id,
+            dstChainId: base.id,
             srcToken: USDC_BASE,
-            dstToken: USDC_OP,
-            amount: BRIDGE_AMOUNT,
+            dstToken: USDT_BASE,
+            amount: SWAP_AMOUNT,
             slippage: 0.01,
-            allowBridgeProviders: "across",
+            allowSwapProviders: "odos",
           },
         },
       ],
@@ -265,19 +266,19 @@ async function main() {
     apiKey: API_KEY,
   });
 
-  // Execute the bridge quote using the session key (no owner signature needed).
+  // Execute the swap quote using the session key (no owner signature needed).
   const { hash } = await redeemerMeeClient.executeSessionQuote({
     quoteType: "simple",
     quote,
   });
 
-  // Wait for the bridge supertransaction to be mined on both Base and Optimism.
+  // Wait for the swap supertransaction to be mined on Base.
   const { explorerLinks } =
     await redeemerMeeClient.waitForSupertransactionReceipt({
       hash,
     });
 
-  console.log("Use session transaction links: ", {
+  console.log("Use session swap transaction links: ", {
     explorerLinks,
   });
 
