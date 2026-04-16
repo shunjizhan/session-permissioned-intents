@@ -214,6 +214,7 @@ async function main() {
       ownerAddress: signer.address,
       sessionDetails,
       meeVersion: MEEVersion.V2_1_0.toString(),
+      routeSelectionMode: 'fast-quote', // 'cheap', 'fast-quote', 'fast-execution'
       composeFlows: [
         {
           type: "/instructions/intent-simple",
