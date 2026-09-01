@@ -10,6 +10,12 @@ on `@biconomy/abstractjs` **2.0.0** with MEE **2.2.3**, a session key cannot red
 There is no swap, no bridge, no aggregator and no third-party router involved — just a
 session key moving an ERC-20. That keeps the failure unambiguous.
 
+**The root cause is identified — see [ROOT-CAUSE.md](./ROOT-CAUSE.md).** In short: abstractjs 2.0.0
+signs session redemptions in Simple mode (`0x177eee00`), but the Simple-mode path of
+`K1MeeValidator.validateSignatureWithData` cannot validate a signature when the caller is
+SmartSessions. The NoMee flow can, and does. This is already fixed in
+[abstractjs#201](https://github.com/bcnmy/abstractjs/pull/201), open and unmerged since 2026-04-06.
+
 ## What happens
 
 | Phase | Result |
@@ -49,8 +55,9 @@ work on it.
 ## What has been ruled out
 
 - **Not the policies.** A session whose only policy is `getSudoPolicy()` fails identically.
-- **Not the signature-format branch.** `signQuote` picks EIP-712 SuperTx typed data for MEE
-  ≥ 2.2.1 and personal-sign below it; both branches were forced, same rejection.
+- **Not the EIP-712 / personal-sign branch inside `signQuote`.** Both were forced, same rejection —
+  because `formatSignedQuotePayload` prepends `0x177eee00` either way, so both route to Simple mode.
+  The prefix is the problem, not the digest branch.
 - **Not the SDK.** This same 2.0.0 SDK redeems successfully against MEE **2.1.0** via
   `getLegacyMEEVersion(MEEVersion.V2_1_0)` — enable and redeem both mine, on Base and on
   Robinhood Chain (4663).
@@ -66,11 +73,13 @@ signature path is never simulated before the quote is accepted.
 
 ## Questions for the Biconomy team
 
-1. When will session redemption on MEE 2.2.3 be supported (node validation + the
-   `/v1/quote` accepted-version list)?
+1. Can [abstractjs#201](https://github.com/bcnmy/abstractjs/pull/201) be merged and published? It
+   fixes exactly this, and has been open since 2026-04-06.
 2. Until then, what is the recommended stack for **new** accounts that need sessions? Is
    `getLegacyMEEVersion(MEEVersion.V2_1_0)` safe for new accounts, despite its
    "existing accounts" documentation note?
+3. Should the node reject a Simple-mode signature on a session USE quote early, rather than
+   accepting it and failing at execution?
 
 ## Prerequisites
 
