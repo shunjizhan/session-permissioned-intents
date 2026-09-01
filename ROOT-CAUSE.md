@@ -107,15 +107,11 @@ path is never exercised before the quote is accepted.
 - From `V3_0_0`, `getSessionValidatorInitData` points sessions at a dedicated
   `EoaStatelessValidator` submodule instead of MEE K1 (`getSessionQuote.js:11-16`).
 
-## Asks
+## Ask
 
-1. Can abstractjs#201 be merged and published? It has been open since April.
-2. We will not deploy legacy `V2_1_0` accounts, so `getLegacyMEEVersion` is not an option for us —
-   and the SDK itself says 2.1.0 "cannot be used to create new accounts". What is the supported
-   path to smart sessions for **new** accounts before #201 lands? Is `V3_0_0` with the
-   `EoaStatelessValidator` submodule the intended stack, and is it available in a published SDK?
-3. Should the node reject a Simple-mode signature on a session USE quote early, rather than
-   accepting it and failing at execution?
+Please merge and publish [abstractjs#201](https://github.com/bcnmy/abstractjs/pull/201). It fixes
+exactly this defect and has been open since 2026-04-06. Until it ships, smart sessions do not work
+on the default stack for new accounts.
 
 ## Repro
 
