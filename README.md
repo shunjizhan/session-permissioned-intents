@@ -82,11 +82,14 @@ signature path is never simulated before the quote is accepted.
 
 ```bash
 bun install
-
-PRIVATE_KEY=0x... \
-MEE_API_KEY=mee_... \
-BASE_RPC_URL=https://... \
+cp .env.example .env   # then fill in PRIVATE_KEY and MEE_API_KEY
 bun run transfer.ts
+```
+
+Bun loads `.env` automatically. Passing the variables inline works too:
+
+```bash
+PRIVATE_KEY=0x... MEE_API_KEY=mee_... bun run transfer.ts
 ```
 
 `BASE_RPC_URL` is optional but recommended — the default public Base endpoint rate-limits the
