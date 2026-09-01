@@ -1,10 +1,11 @@
 {
   "lockfileVersion": 1,
+  "configVersion": 0,
   "workspaces": {
     "": {
       "name": "session-permissioned-intents",
       "dependencies": {
-        "@biconomy/abstractjs": "^1.2.3",
+        "@biconomy/abstractjs": "2.0.0",
         "viem": "^2.47.6",
       },
       "devDependencies": {
@@ -18,7 +19,7 @@
   "packages": {
     "@adraffy/ens-normalize": ["@adraffy/ens-normalize@1.11.1", "", {}, "sha512-nhCBV3quEgesuf7c7KYfperqSS14T8bYuvJ8PcLJp6znkZpFc0AuW4qBtr8eKVyPPe/8RSr7sglCWPU5eaxwKQ=="],
 
-    "@biconomy/abstractjs": ["@biconomy/abstractjs@1.2.3", "", { "peerDependencies": { "@metamask/delegation-toolkit": "^0.11.0", "@noble/curves": "2.0.1", "@openzeppelin/merkle-tree": "1.0.8", "@rhinestone/module-sdk": "0.4.0", "@safe-global/types-kit": "3.0.0", "typescript": "^5.8.2", "viem": "^2.26.2" } }, "sha512-7o9rFaL7qoHsyBjcr40qKM5NPpvKSA7wpNhadHO15qVvMhrfCcESL7mJCIvRgZqg5mKDoEv766u3cpIDUFhxAQ=="],
+    "@biconomy/abstractjs": ["@biconomy/abstractjs@2.0.0", "", { "peerDependencies": { "@metamask/delegation-toolkit": "^0.11.0", "@noble/curves": "2.0.1", "@openzeppelin/merkle-tree": "1.0.8", "@rhinestone/module-sdk": "0.4.0", "@safe-global/types-kit": "3.0.0", "typescript": "^5.8.2", "viem": "^2.26.2" } }, "sha512-rs1H7xQ6s42tzGuQjjmSgLD/mlswxo9AhGj5aCKBNzW3DkPmxjWzxNe/a1J7IgVhEqwsIreO5ILskbsoJeJWPA=="],
 
     "@ethereumjs/common": ["@ethereumjs/common@3.2.0", "", { "dependencies": { "@ethereumjs/util": "^8.1.0", "crc-32": "^1.2.0" } }, "sha512-pksvzI0VyLgmuEF2FA/JR/4/y6hcPq8OUail3/AvycBaW1d5VSauOZzqGvJ3RTmR4MU35lWE8KseKOsEhrFRBA=="],
 

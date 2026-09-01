@@ -43,18 +43,20 @@ async function main() {
 
   // 2. Multichain Nexus account – same deterministic address on Base and Optimism.
   //    Both chains are required: Base is the deposit chain, Optimism is the receive chain.
+  //    NOTE: on @biconomy/abstractjs 2.0.0, V2_2_3 is the ONLY version getMEEVersion
+  //    accepts for new accounts (V2_1_0 throws) — see swap.ts for details.
   const mcNexus = await toMultichainNexusAccount({
     signer,
     chainConfigurations: [
       {
         chain: base,
         transport: http(),
-        version: getMEEVersion(MEEVersion.V2_1_0),
+        version: getMEEVersion(MEEVersion.V2_2_3),
       },
       {
         chain: optimism,
         transport: http(),
-        version: getMEEVersion(MEEVersion.V2_1_0),
+        version: getMEEVersion(MEEVersion.V2_2_3),
       },
     ],
   });
@@ -203,6 +205,10 @@ async function main() {
   // Passes sessionDetails so the node builds userOps signed by the redeemer key.
   // intent-simple routes USDC Base → Optimism via Across (allowBridgeProviders).
   // Any intent providers can be used such as LiFi and etc... Policies needs to be configured accordingly
+  //
+  // ❌ BREAKS HERE on MEE version 2.2.3 — the quote API rejects meeVersion "2.2.3"
+  // at input validation (accepted: 3.0.0, 2.3.0, 2.2.1, 2.1.0, 2.0.0, 1.1.0, 1.0.0),
+  // so session redemption never gets a quote. See swap.ts for the verbatim response.
   const quoteResult = await fetch("https://api.biconomy.io/v1/quote", {
     method: "POST",
     headers: {
@@ -213,7 +219,7 @@ async function main() {
       mode: "smart-account",
       ownerAddress: signer.address,
       sessionDetails,
-      meeVersion: MEEVersion.V2_1_0.toString(),
+      meeVersion: MEEVersion.V2_2_3.toString(),
       routeSelectionMode: 'fast-quote', // 'cheap', 'fast-quote', 'fast-execution'
       composeFlows: [
         {
@@ -246,13 +252,13 @@ async function main() {
       {
         chain: base,
         transport: http(),
-        version: getMEEVersion(MEEVersion.V2_1_0),
+        version: getMEEVersion(MEEVersion.V2_2_3),
         accountAddress: mcNexus.addressOn(base.id, true),
       },
       {
         chain: optimism,
         transport: http(),
-        version: getMEEVersion(MEEVersion.V2_1_0),
+        version: getMEEVersion(MEEVersion.V2_2_3),
         accountAddress: mcNexus.addressOn(optimism.id, true),
       },
     ],

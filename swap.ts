@@ -44,18 +44,22 @@ async function main() {
 
   // 2. Multichain Nexus account – same deterministic address on Base and Optimism.
   //    Both chains are required: Base is the deposit chain, Optimism is the receive chain.
+  //    NOTE: on @biconomy/abstractjs 2.0.0, V2_2_3 is the ONLY version getMEEVersion
+  //    accepts — getMEEVersion(MEEVersion.V2_1_0) is a compile-time error and throws at
+  //    runtime: "MEE version 2.1.0 cannot be used to create new accounts. Use 2.2.3."
+  //    So a new account on the current SDK is forced onto 2.2.3.
   const mcNexus = await toMultichainNexusAccount({
     signer,
     chainConfigurations: [
       {
         chain: base,
         transport: http(),
-        version: getMEEVersion(MEEVersion.V2_1_0),
+        version: getMEEVersion(MEEVersion.V2_2_3),
       },
       {
         chain: optimism,
         transport: http(),
-        version: getMEEVersion(MEEVersion.V2_1_0),
+        version: getMEEVersion(MEEVersion.V2_2_3),
       },
     ],
   });
@@ -161,6 +165,7 @@ async function main() {
   // The owner EOA signs this once. After this tx is mined the redeemer key
   // can execute bridge calls autonomously without the owner's involvement.
   // sponsorship: true means Biconomy's gas tank covers the session setup fee.
+  // ✅ This phase WORKS on MEE version 2.2.3 — the enable supertransaction mines.
   const prepareAndEnableSessionQuote = await meeClient.getSessionQuote({
     mode: "PREPARE",
     enableSession: {
@@ -204,6 +209,22 @@ async function main() {
   // Passes sessionDetails so the node builds userOps signed by the redeemer key.
   // intent-simple swaps USDC → USDT on Base via Odos (allowSwapProviders).
   // Odos is very well suited for smart session granualr permissions
+  //
+  // ❌ BREAKS HERE on MEE version 2.2.3 — the quote API rejects the request at
+  // input validation because "2.2.3" is not in its accepted meeVersion list, so
+  // session redemption never even gets a quote. Live response (2026-09-01):
+  //
+  //   {"code":400,"message":"invalid request params","path":"/v1/quote","errors":
+  //    ["{\"code\":\"invalid_value\",\"values\":[\"3.0.0\",\"2.3.0\",\"2.2.1\",
+  //    \"2.1.0\",\"2.0.0\",\"1.1.0\",\"1.0.0\"],\"path\":[\"meeVersion\"],
+  //    \"message\":\"Invalid option: expected one of \\\"3.0.0\\\"|\\\"2.3.0\\\"|
+  //    \\\"2.2.1\\\"|\\\"2.1.0\\\"|\\\"2.0.0\\\"|\\\"1.1.0\\\"|\\\"1.0.0\\\"\"}"]}
+  //
+  // The other redemption surface fails on 2.2.3 too: getSessionQuote({mode: "USE"})
+  // returns a quote, but the MEE node rejects the session-signed supertransaction
+  // with `Error: [0] Invalid signature`. Everything up to here (PREPARE + enable,
+  // and owner-signed supertransactions in general) works on 2.2.3; only session
+  // redemption fails. The identical flow works end to end on 2.1.0.
   const quoteResult = await fetch("https://api.biconomy.io/v1/quote", {
     method: "POST",
     headers: {
@@ -214,7 +235,7 @@ async function main() {
       mode: "smart-account",
       ownerAddress: signer.address,
       sessionDetails,
-      meeVersion: MEEVersion.V2_1_0.toString(),
+      meeVersion: MEEVersion.V2_2_3.toString(),
       routeSelectionMode: 'fast-quote', // 'cheap', 'fast-quote', 'fast-execution'
       composeFlows: [
         {
@@ -247,13 +268,13 @@ async function main() {
       {
         chain: base,
         transport: http(),
-        version: getMEEVersion(MEEVersion.V2_1_0),
+        version: getMEEVersion(MEEVersion.V2_2_3),
         accountAddress: mcNexus.addressOn(base.id, true),
       },
       {
         chain: optimism,
         transport: http(),
-        version: getMEEVersion(MEEVersion.V2_1_0),
+        version: getMEEVersion(MEEVersion.V2_2_3),
         accountAddress: mcNexus.addressOn(optimism.id, true),
       },
     ],

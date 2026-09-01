@@ -10,7 +10,7 @@
     "typescript": "^5"
   },
   "dependencies": {
-    "@biconomy/abstractjs": "^1.2.3",
+    "@biconomy/abstractjs": "2.0.0",
     "viem": "^2.47.6"
   }
 }
