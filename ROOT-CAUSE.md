@@ -110,8 +110,10 @@ path is never exercised before the quote is accepted.
 ## Asks
 
 1. Can abstractjs#201 be merged and published? It has been open since April.
-2. Until then, is `getLegacyMEEVersion(MEEVersion.V2_1_0)` supported for **new** accounts, despite
-   the "existing accounts" note?
+2. We will not deploy legacy `V2_1_0` accounts, so `getLegacyMEEVersion` is not an option for us —
+   and the SDK itself says 2.1.0 "cannot be used to create new accounts". What is the supported
+   path to smart sessions for **new** accounts before #201 lands? Is `V3_0_0` with the
+   `EoaStatelessValidator` submodule the intended stack, and is it available in a published SDK?
 3. Should the node reject a Simple-mode signature on a session USE quote early, rather than
    accepting it and failing at execution?
 

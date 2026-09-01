@@ -75,9 +75,9 @@ signature path is never simulated before the quote is accepted.
 
 1. Can [abstractjs#201](https://github.com/bcnmy/abstractjs/pull/201) be merged and published? It
    fixes exactly this, and has been open since 2026-04-06.
-2. Until then, what is the recommended stack for **new** accounts that need sessions? Is
-   `getLegacyMEEVersion(MEEVersion.V2_1_0)` safe for new accounts, despite its
-   "existing accounts" documentation note?
+2. What is the recommended stack for **new** accounts that need sessions? Legacy `V2_1_0` accounts
+   are not an option for us, and the SDK itself says 2.1.0 cannot be used to create new accounts.
+   Is `V3_0_0` with the `EoaStatelessValidator` submodule the intended answer?
 3. Should the node reject a Simple-mode signature on a session USE quote early, rather than
    accepting it and failing at execution?
 
